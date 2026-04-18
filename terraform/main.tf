@@ -2,16 +2,24 @@ provider "aws" {
   region = var.region
 }
 
+# ECR Repository (fix for missing repo error)
 resource "aws_ecr_repository" "app_repo" {
-  name = "assaabloy-app"
+  name = var.app_name
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  tags = {
+    Environment = "dev"
+    Project     = "assaabloy-pipeline"
+  }
 }
 
 resource "aws_ecs_cluster" "app_cluster" {
-  name = "assaabloy-cluster"
+  name = "${var.app_name}-cluster"
 }
 
 resource "aws_ecs_task_definition" "app_task" {
-  family                   = "assaabloy-task"
+  family                   = "${var.app_name}-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "256"
@@ -29,7 +37,7 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "app_service" {
-  name            = "assaabloy-service"
+  name            = "${var.app_name}-service"
   cluster         = aws_ecs_cluster.app_cluster.id
   task_definition = aws_ecs_task_definition.app_task.arn
   desired_count   = 1
