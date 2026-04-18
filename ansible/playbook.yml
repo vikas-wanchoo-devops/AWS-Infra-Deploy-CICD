@@ -1,0 +1,6 @@
+- name: Configure ECS Service
+  hosts: localhost
+  connection: local
+  tasks:
+    - include_role:
+        name: ecs

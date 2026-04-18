@@ -1,0 +1,5 @@
+- name: Enable CloudWatch logging for ECS task
+  community.aws.ecs_taskdefinition:
+    family: assaabloy-task
+    container_definitions: "{{ lookup('file','container-def.json') }}"
+    state: present
