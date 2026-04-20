@@ -15,8 +15,8 @@ resource "aws_ecs_task_definition" "app_task" {
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
 
-  cpu    = "128"
-  memory = "256"
+  cpu    = "256"
+  memory = "512"
 
   # Now using your actual account ID
   execution_role_arn = "arn:aws:iam::879696522469:role/ecsTaskExecutionRole"
