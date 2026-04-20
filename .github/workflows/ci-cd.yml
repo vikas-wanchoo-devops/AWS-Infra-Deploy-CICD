@@ -46,27 +46,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Login to ECR using AWS CLI
-      - name: Login to ECR
+      # Build Docker image and push to ECR
+      - name: Build and Push Docker image
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-          docker login --username AWS --password-stdin \
-          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-      # Build Docker image from ./app, tag it, and push to ECR
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t assaabloy-app ./app
-          docker tag assaabloy-app:latest \
-          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/assaabloy-app:latest
-          docker push \
-          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/assaabloy-app:latest
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/assaabloy-app:latest
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          docker build -t $IMAGE_URI ./app
+          docker push $IMAGE_URI
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment: production
     steps:
+      # Checkout repository code
+      - uses: actions/checkout@v3
+
       # Configure AWS credentials again for deploy job
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
