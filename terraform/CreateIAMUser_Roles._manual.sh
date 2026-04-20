@@ -7,6 +7,7 @@ set -e
 #          + required AWS policies
 #          + programmatic access keys
 #          + Terraform backend S3 bucket
+#          + ECS Task Execution Role
 # ============================================================
 
 # ------------------------------------------------------------
@@ -49,3 +50,27 @@ aws s3api create-bucket \
 
 aws s3api put-bucket-versioning --bucket assaabloy-terraform-state \
   --versioning-configuration Status=Enabled
+
+# ------------------------------------------------------------
+# 5. Create ECS Task Execution Role (MANDATORY, one-time)
+#    - Allows ECS tasks to pull images from ECR
+#    - Write logs to CloudWatch
+# ------------------------------------------------------------
+aws iam create-role \
+  --role-name ecsTaskExecutionRole \
+  --assume-role-policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "ecs-tasks.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }'
+
+aws iam attach-role-policy \
+  --role-name ecsTaskExecutionRole \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
