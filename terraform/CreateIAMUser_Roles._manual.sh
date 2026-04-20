@@ -12,11 +12,12 @@ set -e
 
 # ------------------------------------------------------------
 # 1. Create IAM User (MANDATORY)
+#    - This user will be used by GitHub Actions for CI/CD
 # ------------------------------------------------------------
 aws iam create-user --user-name github-actions-user
 
 # ------------------------------------------------------------
-# 2. Attach required IAM policies
+# 2. Attach required IAM policies to the user
 #    - AmazonEC2ContainerRegistryFullAccess : push/pull images to ECR
 #    - AmazonECS_FullAccess                 : manage ECS cluster/services
 #    - CloudWatchFullAccess                 : allow ECS tasks to send logs
@@ -33,7 +34,7 @@ aws iam attach-user-policy --user-name github-actions-user \
 # ------------------------------------------------------------
 # 3. Create Access Key (MANDATORY)
 #    - Generates AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-#    - Store these securely in GitHub Secrets
+#    - Store these securely in GitHub Secrets for CI/CD pipeline
 # ------------------------------------------------------------
 aws iam create-access-key --user-name github-actions-user
 
@@ -53,8 +54,10 @@ aws s3api put-bucket-versioning --bucket assaabloy-terraform-state \
 
 # ------------------------------------------------------------
 # 5. Create ECS Task Execution Role (MANDATORY, one-time)
-#    - Allows ECS tasks to pull images from ECR
-#    - Write logs to CloudWatch
+#    - This role is assumed by ECS tasks at runtime
+#    - Allows ECS tasks to:
+#        * Pull container images from ECR
+#        * Write logs to CloudWatch
 # ------------------------------------------------------------
 aws iam create-role \
   --role-name ecsTaskExecutionRole \
