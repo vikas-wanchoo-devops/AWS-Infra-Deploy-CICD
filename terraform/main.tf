@@ -18,7 +18,7 @@ resource "aws_ecs_task_definition" "app_task" {
   cpu    = "256"
   memory = "512"
 
-  # Now using your actual account ID
+  # Using your actual account ID
   execution_role_arn = "arn:aws:iam::879696522469:role/ecsTaskExecutionRole"
 
   container_definitions = jsonencode([
@@ -44,7 +44,11 @@ resource "aws_ecs_service" "app_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = ["subnet-xxxxxx"]   # replace with your subnet IDs
+    subnets = [
+      "subnet-0d16d36a33d1c1f22",
+      "subnet-013e51f5fbc1318cb",
+      "subnet-0a4e24f116d3364f9"
+    ]
     assign_public_ip = true
   }
 }
