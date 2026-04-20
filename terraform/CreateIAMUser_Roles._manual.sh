@@ -37,12 +37,15 @@ aws iam attach-user-policy --user-name github-actions-user \
 aws iam create-access-key --user-name github-actions-user
 
 # ------------------------------------------------------------
-# 4. Create S3 bucket for Terraform state (MANDATORY)
+# 4. Create S3 bucket for Terraform state (MANDATORY, one-time)
 #    - Bucket name: assaabloy-terraform-state
 #    - Region: eu-north-1
 #    - Enables versioning for state file history
 # ------------------------------------------------------------
-aws s3api create-bucket --bucket assaabloy-terraform-state --region eu-north-1
+aws s3api create-bucket \
+  --bucket assaabloy-terraform-state \
+  --create-bucket-configuration LocationConstraint=eu-north-1 \
+  --region eu-north-1
 
 aws s3api put-bucket-versioning --bucket assaabloy-terraform-state \
   --versioning-configuration Status=Enabled
