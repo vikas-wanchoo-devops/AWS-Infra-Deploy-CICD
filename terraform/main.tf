@@ -17,43 +17,20 @@ resource "aws_ecs_cluster" "app_cluster" {
 }
 
 # ------------------------------------------------------------
-# 3. ECS Task Execution Role
-#    - Allows ECS tasks to pull images from ECR
-#    - Write logs to CloudWatch
-# ------------------------------------------------------------
-resource "aws_iam_role" "ecsTaskExecutionRole" {
-  name = "ecsTaskExecutionRole"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
-  role       = aws_iam_role.ecsTaskExecutionRole.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-# ------------------------------------------------------------
-# 4. ECS Task Definition
+# 3. ECS Task Definition
+#    - References pre-created execution role
+#    - Reduced CPU/Memory for lightweight Flask API
 # ------------------------------------------------------------
 resource "aws_ecs_task_definition" "app_task" {
   family                   = "assaabloy-app-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
 
-  execution_role_arn = aws_iam_role.ecsTaskExecutionRole.arn
+  # Smallest allowed Fargate configuration
+  cpu    = "128"
+  memory = "256"
+
+  execution_role_arn = "arn:aws:iam::<account-id>:role/ecsTaskExecutionRole"
 
   container_definitions = jsonencode([
     {
@@ -71,7 +48,7 @@ resource "aws_ecs_task_definition" "app_task" {
 }
 
 # ------------------------------------------------------------
-# 5. ECS Service
+# 4. ECS Service
 # ------------------------------------------------------------
 resource "aws_ecs_service" "app_service" {
   name            = "assaabloy-app-service"
