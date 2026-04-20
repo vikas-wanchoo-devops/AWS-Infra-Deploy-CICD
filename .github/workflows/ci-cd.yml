@@ -19,23 +19,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Ensure S3 bucket exists before Terraform init
-      - name: Ensure S3 bucket exists
-        run: |
-          if ! aws s3api head-bucket --bucket assaabloy-terraform-state 2>/dev/null; then
-            aws s3api create-bucket \
-              --bucket assaabloy-terraform-state \
-              --create-bucket-configuration LocationConstraint=eu-north-1 \
-              --region eu-north-1
-          fi
-          aws s3api put-bucket-versioning --bucket assaabloy-terraform-state \
-            --versioning-configuration Status=Enabled
-
       # Install Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      # Initialize Terraform with S3 backend
+      # Initialize Terraform with S3 backend (bucket already created manually)
       - name: Terraform Init
         run: terraform -chdir=terraform init
 
