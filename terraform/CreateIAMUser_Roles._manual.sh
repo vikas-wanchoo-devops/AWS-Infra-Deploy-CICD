@@ -77,3 +77,31 @@ aws iam create-role \
 aws iam attach-role-policy \
   --role-name ecsTaskExecutionRole \
   --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+# ------------------------------------------------------------
+# 6. Verification (Optional but Recommended)
+#    - Confirm IAM user policies
+#    - Confirm ECS Task Execution Role trust and attached policies
+# ------------------------------------------------------------
+USER=github-actions-user
+ROLE=ecsTaskExecutionRole
+
+echo "=== Attached Managed Policies for $USER ==="
+aws iam list-attached-user-policies --user-name $USER \
+  --query 'AttachedPolicies[*].PolicyName' --output table
+
+echo "=== Inline Policies for $USER ==="
+aws iam list-user-policies --user-name $USER \
+  --query 'PolicyNames' --output table
+
+echo "=== IAM Roles in Account ==="
+aws iam list-roles \
+  --query 'Roles[*].RoleName' --output table
+
+echo "=== Trusted Entities for $ROLE ==="
+aws iam get-role --role-name $ROLE \
+  --query 'Role.AssumeRolePolicyDocument.Statement[*].Principal' --output table
+
+echo "=== Policies attached to $ROLE ==="
+aws iam list-attached-role-policies --role-name $ROLE \
+  --query 'AttachedPolicies[*].PolicyName' --output table
