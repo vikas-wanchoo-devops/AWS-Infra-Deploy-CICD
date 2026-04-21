@@ -23,7 +23,7 @@ resource "aws_ecs_cluster" "assaabloy_cluster" {
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
   description = "Allow HTTP inbound traffic"
-  vpc_id      = "<your-vpc-id>"
+  vpc_id      = "vpc-0b5d7248bdde16ef7"   # ✅ Correct VPC ID
 
   ingress {
     from_port   = 80
@@ -59,7 +59,7 @@ resource "aws_lb_target_group" "assaabloy_tg" {
   port        = 5000
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = "<your-vpc-id>"
+  vpc_id      = "vpc-0b5d7248bdde16ef7"   # ✅ Correct VPC ID
 
   health_check {
     path                = "/health"
