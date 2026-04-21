@@ -1,6 +1,6 @@
 FROM python:3.9-slim
 
-# Install curl for debugging inside ECS Exec
+# Install curl for debugging inside ECS Exec.
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
