@@ -8,6 +8,7 @@ set -e
 #          + programmatic access keys
 #          + Terraform backend S3 bucket
 #          + ECS Task Execution Role
+#          + ECS Task Role (for ECS Exec)
 # ============================================================
 
 # ------------------------------------------------------------
@@ -79,29 +80,55 @@ aws iam attach-role-policy \
   --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
 # ------------------------------------------------------------
-# 6. Verification (Optional but Recommended)
-#    - Confirm IAM user policies
-#    - Confirm ECS Task Execution Role trust and attached policies
+# 6. Create ECS Task Role (MANDATORY for ECS Exec)
+#    - This role is assumed by ECS tasks at runtime
+#    - Required for ECS Exec (Session Manager integration)
 # ------------------------------------------------------------
+aws iam create-role \
+  --role-name ecsTaskRole \
+  --assume-role-policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "ecs-tasks.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }'
+
+aws iam attach-role-policy \
+  --role-name ecsTaskRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+# ------------------------------------------------------------
+# 7. Verification (Optional but Recommended)
 USER=github-actions-user
-ROLE=ecsTaskExecutionRole
+ROLE_EXEC=ecsTaskExecutionRole
+ROLE_TASK=ecsTaskRole
 
 echo "=== Attached Managed Policies for $USER ==="
 aws iam list-attached-user-policies --user-name $USER \
   --query 'AttachedPolicies[*].PolicyName' --output table
 
-echo "=== Inline Policies for $USER ==="
-aws iam list-user-policies --user-name $USER \
-  --query 'PolicyNames' --output table
-
 echo "=== IAM Roles in Account ==="
 aws iam list-roles \
   --query 'Roles[*].RoleName' --output table
 
-echo "=== Trusted Entities for $ROLE ==="
-aws iam get-role --role-name $ROLE \
+echo "=== Trusted Entities for $ROLE_EXEC ==="
+aws iam get-role --role-name $ROLE_EXEC \
   --query 'Role.AssumeRolePolicyDocument.Statement[*].Principal' --output table
 
-echo "=== Policies attached to $ROLE ==="
-aws iam list-attached-role-policies --role-name $ROLE \
+echo "=== Policies attached to $ROLE_EXEC ==="
+aws iam list-attached-role-policies --role-name $ROLE_EXEC \
+  --query 'AttachedPolicies[*].PolicyName' --output table
+
+echo "=== Trusted Entities for $ROLE_TASK ==="
+aws iam get-role --role-name $ROLE_TASK \
+  --query 'Role.AssumeRolePolicyDocument.Statement[*].Principal' --output table
+
+echo "=== Policies attached to $ROLE_TASK ==="
+aws iam list-attached-role-policies --role-name $ROLE_TASK \
   --query 'AttachedPolicies[*].PolicyName' --output table
