@@ -23,6 +23,7 @@ aws iam create-user --user-name github-actions-user
 #    - AmazonECS_FullAccess                 : manage ECS cluster/services
 #    - CloudWatchFullAccess                 : allow ECS tasks to send logs
 #    - ElasticLoadBalancingFullAccess       : manage ALBs/Target Groups
+#    - AmazonEC2FullAccess                  : manage EC2 resources (security groups, subnets, etc.)
 # ------------------------------------------------------------
 aws iam attach-user-policy --user-name github-actions-user \
   --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
@@ -36,18 +37,21 @@ aws iam attach-user-policy --user-name github-actions-user \
 aws iam attach-user-policy --user-name github-actions-user \
   --policy-arn arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess
 
+aws iam attach-user-policy --user-name github-actions-user \
+  --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess
+
 # ------------------------------------------------------------
 # 2a. (Optional) Create and attach custom JSON policy
 #    - Use this if you want tighter governance instead of broad managed policies
 #    - Save JSON as LoadBalancer-CICD-Policy.json before running
 # ------------------------------------------------------------
-aws iam create-policy \
-  --policy-name LoadBalancer-CICD-Policy \
-  --policy-document file://LoadBalancer-CICD-Policy.json
-
-aws iam attach-user-policy \
-  --user-name github-actions-user \
-  --policy-arn arn:aws:iam::879696522469:policy/LoadBalancer-CICD-Policy
+# aws iam create-policy \
+#   --policy-name LoadBalancer-CICD-Policy \
+#   --policy-document file://LoadBalancer-CICD-Policy.json
+#
+# aws iam attach-user-policy \
+#   --user-name github-actions-user \
+#   --policy-arn arn:aws:iam::879696522469:policy/LoadBalancer-CICD-Policy
 
 # ------------------------------------------------------------
 # 3. Create Access Key (MANDATORY)
