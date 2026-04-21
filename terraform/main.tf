@@ -2,6 +2,18 @@ provider "aws" {
   region = "eu-north-1"
 }
 
+# --- ECR Repository ---
+resource "aws_ecr_repository" "app_repo" {
+  name = "assaabloy-app"
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  tags = {
+    Environment = "dev"
+    Project     = "assaabloy-pipeline"
+  }
+}
+
 # --- ECS Cluster ---
 resource "aws_ecs_cluster" "assaabloy_cluster" {
   name = "assaabloy-app-cluster"
@@ -86,7 +98,7 @@ resource "aws_ecs_task_definition" "assaabloy_task" {
 [
   {
     "name": "app",
-    "image": "879696522469.dkr.ecr.eu-north-1.amazonaws.com/assaabloy-app:latest",
+    "image": "${aws_ecr_repository.app_repo.repository_url}:latest",
     "essential": true,
     "portMappings": [
       {
