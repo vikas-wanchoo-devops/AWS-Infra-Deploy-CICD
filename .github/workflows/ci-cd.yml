@@ -8,10 +8,8 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     steps:
-      # Checkout repository code
       - uses: actions/checkout@v3
 
-      # Configure AWS credentials from GitHub Secrets
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -19,15 +17,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Install Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      # Initialize Terraform with S3 backend (bucket already created manually)
       - name: Terraform Init
         run: terraform -chdir=terraform init
 
-      # Apply Terraform configuration (auto-approve to skip interactive prompt)
       - name: Terraform Apply
         run: terraform -chdir=terraform apply -auto-approve
 
@@ -35,10 +30,8 @@ jobs:
     needs: terraform
     runs-on: ubuntu-latest
     steps:
-      # Checkout repository code
       - uses: actions/checkout@v3
 
-      # Configure AWS credentials again for build job
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -46,7 +39,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Build Docker image and push to ECR
       - name: Build and Push Docker image
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/assaabloy-app:latest
@@ -59,10 +51,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      # Checkout repository code
       - uses: actions/checkout@v3
 
-      # Configure AWS credentials again for deploy job
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -70,6 +60,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Deploy ECS service using deploy script
-      - name: Deploy to ECS
-        run: bash scripts/deploy.sh
+      - name: Register new ECS task definition
+        run: |
+          NEW_TASK_DEF=$(aws ecs register-task-definition \
+            --cli-input-json file://ecs-taskdef.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "NEW_TASK_DEF=$NEW_TASK_DEF" >> $GITHUB_ENV
+
+      - name: Update ECS service with new task definition
+        run: |
+          aws ecs update-service \
+            --cluster assaabloy-app-cluster \
+            --service assaabloy-app-service \
+            --task-definition $NEW_TASK_DEF \
+            --enable-execute-command \
+            --force-new-deployment
