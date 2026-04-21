@@ -17,3 +17,13 @@ output "alb_dns_name" {
   description = "Application Load Balancer DNS name"
   value       = aws_lb.assaabloy_alb.dns_name
 }
+
+output "alb_arn" {
+  description = "Application Load Balancer ARN"
+  value       = aws_lb.assaabloy_alb.arn
+}
+
+output "target_group_arn" {
+  description = "Target Group ARN"
+  value       = aws_lb_target_group.assaabloy_tg.arn
+}
