@@ -1,11 +1,19 @@
 output "ecr_repository_url" {
-  value = aws_ecr_repository.app_repo.repository_url
+  description = "ECR repo URL"
+  value       = aws_ecr_repository.app_repo.repository_url
 }
 
 output "ecs_cluster_name" {
-  value = aws_ecs_cluster.app_cluster.name
+  description = "ECS cluster name"
+  value       = aws_ecs_cluster.assaabloy_cluster.name
 }
 
 output "ecs_service_name" {
-  value = aws_ecs_service.app_service.name
+  description = "ECS service name"
+  value       = aws_ecs_service.assaabloy_service.name
+}
+
+output "alb_dns_name" {
+  description = "Application Load Balancer DNS name"
+  value       = aws_lb.assaabloy_alb.dns_name
 }
