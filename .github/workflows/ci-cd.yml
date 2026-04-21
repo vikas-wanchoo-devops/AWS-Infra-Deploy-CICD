@@ -26,6 +26,9 @@ jobs:
       - name: Terraform Apply
         run: terraform -chdir=terraform apply -auto-approve
 
+      - name: Show Terraform Outputs
+        run: terraform -chdir=terraform output
+
   build:
     needs: terraform
     runs-on: ubuntu-latest
