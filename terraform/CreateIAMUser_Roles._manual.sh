@@ -22,6 +22,7 @@ aws iam create-user --user-name github-actions-user
 #    - AmazonEC2ContainerRegistryFullAccess : push/pull images to ECR
 #    - AmazonECS_FullAccess                 : manage ECS cluster/services
 #    - CloudWatchFullAccess                 : allow ECS tasks to send logs
+#    - ElasticLoadBalancingFullAccess       : manage ALBs/Target Groups
 # ------------------------------------------------------------
 aws iam attach-user-policy --user-name github-actions-user \
   --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
@@ -31,6 +32,22 @@ aws iam attach-user-policy --user-name github-actions-user \
 
 aws iam attach-user-policy --user-name github-actions-user \
   --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAccess
+
+aws iam attach-user-policy --user-name github-actions-user \
+  --policy-arn arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess
+
+# ------------------------------------------------------------
+# 2a. (Optional) Create and attach custom JSON policy
+#    - Use this if you want tighter governance instead of broad managed policies
+#    - Save JSON as LoadBalancer-CICD-Policy.json before running
+# ------------------------------------------------------------
+aws iam create-policy \
+  --policy-name LoadBalancer-CICD-Policy \
+  --policy-document file://LoadBalancer-CICD-Policy.json
+
+aws iam attach-user-policy \
+  --user-name github-actions-user \
+  --policy-arn arn:aws:iam::879696522469:policy/LoadBalancer-CICD-Policy
 
 # ------------------------------------------------------------
 # 3. Create Access Key (MANDATORY)
@@ -105,30 +122,33 @@ aws iam attach-role-policy \
 
 # ------------------------------------------------------------
 # 7. Verification (Optional but Recommended)
+#    - These commands are SAFE to run anytime
+#    - They only VIEW existing policies/roles, no changes
+# ------------------------------------------------------------
 USER=github-actions-user
 ROLE_EXEC=ecsTaskExecutionRole
 ROLE_TASK=ecsTaskRole
 
-echo "=== Attached Managed Policies for $USER ==="
+# 🟢 View attached policies for the IAM user
 aws iam list-attached-user-policies --user-name $USER \
   --query 'AttachedPolicies[*].PolicyName' --output table
 
-echo "=== IAM Roles in Account ==="
+# 🟢 View all IAM roles in the account
 aws iam list-roles \
   --query 'Roles[*].RoleName' --output table
 
-echo "=== Trusted Entities for $ROLE_EXEC ==="
+# 🟢 View trusted entities for ECS Task Execution Role
 aws iam get-role --role-name $ROLE_EXEC \
   --query 'Role.AssumeRolePolicyDocument.Statement[*].Principal' --output table
 
-echo "=== Policies attached to $ROLE_EXEC ==="
+# 🟢 View policies attached to ECS Task Execution Role
 aws iam list-attached-role-policies --role-name $ROLE_EXEC \
   --query 'AttachedPolicies[*].PolicyName' --output table
 
-echo "=== Trusted Entities for $ROLE_TASK ==="
+# 🟢 View trusted entities for ECS Task Role
 aws iam get-role --role-name $ROLE_TASK \
   --query 'Role.AssumeRolePolicyDocument.Statement[*].Principal' --output table
 
-echo "=== Policies attached to $ROLE_TASK ==="
+# 🟢 View policies attached to ECS Task Role
 aws iam list-attached-role-policies --role-name $ROLE_TASK \
   --query 'AttachedPolicies[*].PolicyName' --output table
