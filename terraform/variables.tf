@@ -26,21 +26,23 @@ variable "subnets" {
   ]
 }
 
-# --- Missing variables added here ---
+# --- ECS Task Execution Role ---
 variable "execution_role_arn" {
   description = "ARN of the ECS task execution role"
   type        = string
-  default     = "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
+  default     = "arn:aws:iam::879696522469:role/ecsTaskExecutionRole"
 }
 
+# --- ECS Task Role ---
 variable "task_role_arn" {
   description = "ARN of the ECS task role"
   type        = string
-  default     = "arn:aws:iam::123456789012:role/ecsTaskRole"
+  default     = "arn:aws:iam::879696522469:role/ecsTaskRole"
 }
 
+# --- ECR Repository URL ---
 variable "ecr_repo_url" {
   description = "ECR repository URL for the app image"
   type        = string
-  default     = "123456789012.dkr.ecr.eu-north-1.amazonaws.com/assaabloy-app"
+  default     = "879696522469.dkr.ecr.eu-north-1.amazonaws.com/assaabloy-app"
 }
