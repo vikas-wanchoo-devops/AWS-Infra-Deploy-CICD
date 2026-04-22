@@ -144,19 +144,14 @@ resource "aws_ecs_service" "assaabloy_service" {
     container_port   = 5000
   }
 
-  # ✅ Deployment settings to improve rollout behavior
+  # ✅ Deployment settings supported across provider versions
   deployment_controller {
-    type = "ECS"   # Use ECS rolling update strategy
+    type = "ECS"
   }
 
   deployment_configuration {
     maximum_percent         = 200   # Allow up to double tasks during rollout
     minimum_healthy_percent = 100   # Keep all old tasks until new ones are healthy
-
-    deployment_circuit_breaker {
-      enable   = true               # Auto-detect failed deployments
-      rollback = true               # Roll back automatically if health checks fail
-    }
   }
 
   depends_on = [aws_lb_listener.assaabloy_listener]
