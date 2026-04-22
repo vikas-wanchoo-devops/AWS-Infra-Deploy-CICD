@@ -140,10 +140,16 @@ resource "aws_ecs_service" "assaabloy_service" {
     type = "ECS"
   }
 
-  # ✅ Only rollback support, no rollout percentages
+  # ✅ Rollback safety
   deployment_circuit_breaker {
     enable   = true
     rollback = true
+  }
+
+  # ✅ Fine-grained rollout control (v5.x only)
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 100
   }
 
   depends_on = [aws_lb_listener.assaabloy_listener]
