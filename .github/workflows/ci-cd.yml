@@ -2,7 +2,7 @@ name: CI-CD Pipeline
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main", "dev" ]   # Run pipeline on pushes to main or dev branches
 
 jobs:
   terraform:
@@ -20,7 +20,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.6.6   # ✅ pin a recent Terraform version
+          terraform_version: 1.6.6   # ✅ Pin a recent Terraform version
 
       # ✅ Force provider upgrade
       - name: Terraform Init (upgrade providers)
