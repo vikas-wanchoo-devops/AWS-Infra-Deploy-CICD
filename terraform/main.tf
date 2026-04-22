@@ -140,16 +140,14 @@ resource "aws_ecs_service" "assaabloy_service" {
     type = "ECS"
   }
 
-  # ✅ Correct placement for provider >=4.0
+  # ✅ Correct placement for AWS provider v4.x
   deployment_circuit_breaker {
     enable   = true
     rollback = true
   }
 
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 100
-  }
+  maximum_percent         = 200
+  minimum_healthy_percent = 100
 
   depends_on = [aws_lb_listener.assaabloy_listener]
 }
