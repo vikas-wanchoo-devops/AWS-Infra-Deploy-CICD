@@ -1,12 +1,12 @@
 provider "aws" {
-  region = "eu-north-1"   # AWS region where resources will be created
+  region = "eu-north-1"
 }
 
 # --- ECR Repository ---
 resource "aws_ecr_repository" "app_repo" {
-  name = "assaabloy-app"   # Repository for storing Docker images
+  name = "assaabloy-app"
   image_scanning_configuration {
-    scan_on_push = true    # Enable vulnerability scanning on image push
+    scan_on_push = true
   }
   tags = {
     Environment = "dev"
@@ -16,37 +16,37 @@ resource "aws_ecr_repository" "app_repo" {
 
 # --- ECS Cluster ---
 resource "aws_ecs_cluster" "assaabloy_cluster" {
-  name = "assaabloy-app-cluster"   # Logical grouping of ECS services/tasks
+  name = "assaabloy-app-cluster"
 }
 
 # --- Security Group for ALB ---
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
   description = "Allow HTTP inbound traffic"
-  vpc_id      = "vpc-0b5d7248bdde16ef7"   # ✅ Correct VPC ID (first usage)
+  vpc_id      = "vpc-0b5d7248bdde16ef7"
 
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]   # Allow HTTP from anywhere
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]   # Allow all outbound traffic
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 # --- Application Load Balancer ---
 resource "aws_lb" "assaabloy_alb" {
   name               = "assaabloy-app-alb"
-  internal           = false                     # Public ALB
+  internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [                         # Public subnets
+  subnets            = [
     "subnet-0d16d36a33d1c1f22",
     "subnet-013e51f5fbc1318cb",
     "subnet-0a4e24f116d3364f9"
@@ -58,11 +58,11 @@ resource "aws_lb_target_group" "assaabloy_tg" {
   name        = "assaabloy-app-tg"
   port        = 5000
   protocol    = "HTTP"
-  target_type = "ip"                             # Fargate tasks register by IP
-  vpc_id      = "vpc-0b5d7248bdde16ef7"          # ✅ Correct VPC ID (second usage)
+  target_type = "ip"
+  vpc_id      = "vpc-0b5d7248bdde16ef7"
 
   health_check {
-    path                = "/health"              # Matches Flask health endpoint
+    path                = "/health"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
@@ -98,7 +98,7 @@ resource "aws_ecs_task_definition" "assaabloy_task" {
 [
   {
     "name": "app",
-    "image": "${aws_ecr_repository.app_repo.repository_url}:latest",  # Always deploy latest image
+    "image": "${aws_ecr_repository.app_repo.repository_url}:latest",
     "essential": true,
     "portMappings": [
       {
@@ -108,7 +108,7 @@ resource "aws_ecs_task_definition" "assaabloy_task" {
       }
     ],
     "logConfiguration": {
-      "logDriver": "awslogs",   # Send logs to CloudWatch
+      "logDriver": "awslogs",
       "options": {
         "awslogs-group": "/ecs/assaabloy-app",
         "awslogs-region": "eu-north-1",
@@ -144,7 +144,6 @@ resource "aws_ecs_service" "assaabloy_service" {
     container_port   = 5000
   }
 
-  # ✅ Only supported block in your provider
   deployment_controller {
     type = "ECS"
   }
