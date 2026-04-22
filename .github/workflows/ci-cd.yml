@@ -1,75 +1,139 @@
-name: CI-CD Pipeline
+provider "aws" {
+  region = var.region
+}
 
-on:
-  push:
-    branches: [ "main", "dev" ]   # Run pipeline on pushes to main or dev branches
+# --- ECR Repository ---
+resource "aws_ecr_repository" "app_repo" {
+  name = var.app_name
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  tags = {
+    Environment = "dev"
+    Project     = "assaabloy-pipeline"
+  }
+}
 
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+# --- ECS Cluster ---
+resource "aws_ecs_cluster" "assaabloy_cluster" {
+  name = "${var.app_name}-cluster"
+}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+# --- Security Group for ALB ---
+resource "aws_security_group" "alb_sg" {
+  name        = "alb-sg"
+  description = "Allow HTTP inbound traffic"
+  vpc_id      = var.vpc_id
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.6.6   # ✅ Pin a recent Terraform version
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-      # ✅ Clear cached provider and lock file
-      - name: Clear Terraform cache
-        run: rm -rf terraform/.terraform terraform/.terraform.lock.hcl
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
-      # ✅ Force provider upgrade
-      - name: Terraform Init (upgrade providers)
-        run: terraform -chdir=terraform init -upgrade
+# --- Application Load Balancer ---
+resource "aws_lb" "assaabloy_alb" {
+  name               = "${var.app_name}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = var.subnets
+}
 
-      # ✅ Show provider versions in logs
-      - name: Show Terraform Providers
-        run: terraform -chdir=terraform providers
+# --- Target Group ---
+resource "aws_lb_target_group" "assaabloy_tg" {
+  name        = "${var.app_name}-tg"
+  port        = 5000
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc_id
 
-      - name: Terraform Apply
-        run: terraform -chdir=terraform apply -auto-approve
+  health_check {
+    path                = "/health"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
 
-      - name: Show Terraform Outputs
-        run: terraform -chdir=terraform output
+# --- Listener ---
+resource "aws_lb_listener" "assaabloy_listener" {
+  load_balancer_arn = aws_lb.assaabloy_alb.arn
+  port              = 80
+  protocol          = "HTTP"
 
-  build:
-    needs: terraform
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.assaabloy_tg.arn
+  }
+}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+# --- ECS Task Definition ---
+resource "aws_ecs_task_definition" "assaabloy_task" {
+  family                   = "${var.app_name}-task"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn            = var.task_role_arn
 
-      - name: Build and Push Docker image
-        run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/assaabloy-app:latest
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
-            | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-          docker build -t $IMAGE_URI ./app
-          docker push $IMAGE_URI
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${var.ecr_repo_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 5000
+          hostPort      = 5000
+        }
+      ]
+    }
+  ])
+}
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+# --- ECS Service ---
+resource "aws_ecs_service" "assaabloy_service" {
+  name            = "${var.app_name}-service"
+  cluster         = aws_ecs_cluster.assaabloy_cluster.id
+  task_definition = aws_ecs_task_definition.assaabloy_task.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+  network_configuration {
+    subnets          = var.subnets
+    assign_public_ip = true
+    security_groups  = [aws_security_group.alb_sg.id]
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.assaabloy_tg.arn
+    container_name   = "app"
+    container_port   = 5000
+  }
+
+  deployment_controller {
+    type = "ECS"
+  }
+
+  # ✅ Rollback safety
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  depends_on = [aws_lb_listener.assaabloy_listener]
+}
