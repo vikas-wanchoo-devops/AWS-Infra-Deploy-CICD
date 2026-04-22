@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "eu-north-1"
+  region = var.region
 }
 
 # --- ECR Repository ---
@@ -23,7 +23,7 @@ resource "aws_ecs_cluster" "assaabloy_cluster" {
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
   description = "Allow HTTP inbound traffic"
-  vpc_id      = "vpc-0b5d7248bdde16ef7"
+  vpc_id      = var.vpc_id   # ✅ VDP used here
 
   ingress {
     from_port   = 80
@@ -46,11 +46,7 @@ resource "aws_lb" "assaabloy_alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [
-    "subnet-0d16d36a33d1c1f22",
-    "subnet-013e51f5fbc1318cb",
-    "subnet-0a4e24f116d3364f9"
-  ]
+  subnets            = var.subnets
 }
 
 # --- Target Group ---
@@ -59,7 +55,7 @@ resource "aws_lb_target_group" "assaabloy_tg" {
   port        = 5000
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = "vpc-0b5d7248bdde16ef7"
+  vpc_id      = var.vpc_id   # ✅ VDP used here
 
   health_check {
     path                = "/health"
@@ -111,7 +107,7 @@ resource "aws_ecs_task_definition" "assaabloy_task" {
       "logDriver": "awslogs",
       "options": {
         "awslogs-group": "/ecs/assaabloy-app",
-        "awslogs-region": "eu-north-1",
+        "awslogs-region": "${var.region}",
         "awslogs-stream-prefix": "ecs"
       }
     }
@@ -129,11 +125,7 @@ resource "aws_ecs_service" "assaabloy_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = [
-      "subnet-0d16d36a33d1c1f22",
-      "subnet-013e51f5fbc1318cb",
-      "subnet-0a4e24f116d3364f9"
-    ]
+    subnets         = var.subnets
     assign_public_ip = true
     security_groups  = [aws_security_group.alb_sg.id]
   }
@@ -146,6 +138,16 @@ resource "aws_ecs_service" "assaabloy_service" {
 
   deployment_controller {
     type = "ECS"
+  }
+
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 100
+
+    deployment_circuit_breaker {
+      enable   = true
+      rollback = true
+    }
   }
 
   depends_on = [aws_lb_listener.assaabloy_listener]
