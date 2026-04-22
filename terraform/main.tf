@@ -4,7 +4,7 @@ provider "aws" {
 
 # --- ECR Repository ---
 resource "aws_ecr_repository" "app_repo" {
-  name = "assaabloy-app"
+  name = var.app_name
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -16,14 +16,14 @@ resource "aws_ecr_repository" "app_repo" {
 
 # --- ECS Cluster ---
 resource "aws_ecs_cluster" "assaabloy_cluster" {
-  name = "assaabloy-app-cluster"
+  name = "${var.app_name}-cluster"
 }
 
 # --- Security Group for ALB ---
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
   description = "Allow HTTP inbound traffic"
-  vpc_id      = var.vpc_id   # ✅ VDP used here
+  vpc_id      = var.vpc_id
 
   ingress {
     from_port   = 80
@@ -42,7 +42,7 @@ resource "aws_security_group" "alb_sg" {
 
 # --- Application Load Balancer ---
 resource "aws_lb" "assaabloy_alb" {
-  name               = "assaabloy-app-alb"
+  name               = "${var.app_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -51,11 +51,11 @@ resource "aws_lb" "assaabloy_alb" {
 
 # --- Target Group ---
 resource "aws_lb_target_group" "assaabloy_tg" {
-  name        = "assaabloy-app-tg"
+  name        = "${var.app_name}-tg"
   port        = 5000
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = var.vpc_id   # ✅ VDP used here
+  vpc_id      = var.vpc_id
 
   health_check {
     path                = "/health"
@@ -82,7 +82,7 @@ resource "aws_lb_listener" "assaabloy_listener" {
 
 # --- ECS Task Definition ---
 resource "aws_ecs_task_definition" "assaabloy_task" {
-  family                   = "assaabloy-app-task"
+  family                   = "${var.app_name}-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "256"
@@ -106,7 +106,7 @@ resource "aws_ecs_task_definition" "assaabloy_task" {
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "/ecs/assaabloy-app",
+        "awslogs-group": "/ecs/${var.app_name}",
         "awslogs-region": "${var.region}",
         "awslogs-stream-prefix": "ecs"
       }
@@ -118,7 +118,7 @@ DEFINITION
 
 # --- ECS Service ---
 resource "aws_ecs_service" "assaabloy_service" {
-  name            = "assaabloy-app-service"
+  name            = "${var.app_name}-service"
   cluster         = aws_ecs_cluster.assaabloy_cluster.id
   task_definition = aws_ecs_task_definition.assaabloy_task.arn
   desired_count   = 1
@@ -140,14 +140,15 @@ resource "aws_ecs_service" "assaabloy_service" {
     type = "ECS"
   }
 
+  # ✅ Correct placement for provider >=4.0
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   deployment_configuration {
     maximum_percent         = 200
     minimum_healthy_percent = 100
-
-    deployment_circuit_breaker {
-      enable   = true
-      rollback = true
-    }
   }
 
   depends_on = [aws_lb_listener.assaabloy_listener]
