@@ -87,33 +87,22 @@ resource "aws_ecs_task_definition" "assaabloy_task" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = "arn:aws:iam::879696522469:role/ecsTaskExecutionRole"
-  task_role_arn            = "arn:aws:iam::879696522469:role/ecsTaskRole"
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn            = var.task_role_arn
 
-  container_definitions = <<DEFINITION
-[
-  {
-    "name": "app",
-    "image": "${aws_ecr_repository.app_repo.repository_url}:latest",
-    "essential": true,
-    "portMappings": [
-      {
-        "containerPort": 5000,
-        "hostPort": 5000,
-        "protocol": "tcp"
-      }
-    ],
-    "logConfiguration": {
-      "logDriver": "awslogs",
-      "options": {
-        "awslogs-group": "/ecs/${var.app_name}",
-        "awslogs-region": "${var.region}",
-        "awslogs-stream-prefix": "ecs"
-      }
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${var.ecr_repo_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 5000
+          hostPort      = 5000
+        }
+      ]
     }
-  }
-]
-DEFINITION
+  ])
 }
 
 # --- ECS Service ---
@@ -125,7 +114,7 @@ resource "aws_ecs_service" "assaabloy_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = var.subnets
+    subnets          = var.subnets
     assign_public_ip = true
     security_groups  = [aws_security_group.alb_sg.id]
   }
@@ -144,12 +133,6 @@ resource "aws_ecs_service" "assaabloy_service" {
   deployment_circuit_breaker {
     enable   = true
     rollback = true
-  }
-
-  # ✅ Fine-grained rollout control (v5.x only)
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 100
   }
 
   depends_on = [aws_lb_listener.assaabloy_listener]
