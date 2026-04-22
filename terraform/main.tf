@@ -146,8 +146,10 @@ resource "aws_ecs_service" "assaabloy_service" {
     rollback = true
   }
 
-  maximum_percent         = 200
-  minimum_healthy_percent = 100
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 100
+  }
 
   depends_on = [aws_lb_listener.assaabloy_listener]
 }
