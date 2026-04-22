@@ -22,6 +22,10 @@ jobs:
         with:
           terraform_version: 1.6.6   # ✅ Pin a recent Terraform version
 
+      # ✅ Clear cached provider and lock file
+      - name: Clear Terraform cache
+        run: rm -rf terraform/.terraform terraform/.terraform.lock.hcl
+
       # ✅ Force provider upgrade
       - name: Terraform Init (upgrade providers)
         run: terraform -chdir=terraform init -upgrade
