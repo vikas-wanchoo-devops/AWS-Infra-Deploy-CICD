@@ -40,6 +40,27 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
+# --- Security Group for ECS Tasks ---
+resource "aws_security_group" "ecs_task_sg" {
+  name        = "ecs-task-sg"
+  description = "Allow ALB to reach ECS tasks"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port       = 5000
+    to_port         = 5000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id] # only ALB SG can talk to tasks
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 # --- Application Load Balancer ---
 resource "aws_lb" "assaabloy_alb" {
   name               = "${var.app_name}-alb"
@@ -116,7 +137,7 @@ resource "aws_ecs_service" "assaabloy_service" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [aws_security_group.alb_sg.id]
+    security_groups  = [aws_security_group.ecs_task_sg.id] # use ECS task SG
   }
 
   load_balancer {
