@@ -20,8 +20,13 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      - name: Terraform Init
-        run: terraform -chdir=terraform init
+      # ✅ Force provider upgrade
+      - name: Terraform Init (upgrade providers)
+        run: terraform -chdir=terraform init -upgrade
+
+      # ✅ Show provider versions in logs
+      - name: Show Terraform Providers
+        run: terraform -chdir=terraform providers
 
       - name: Terraform Apply
         run: terraform -chdir=terraform apply -auto-approve
@@ -62,20 +67,3 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Register new ECS task definition
-        run: |
-          NEW_TASK_DEF=$(aws ecs register-task-definition \
-            --cli-input-json file://ecs-taskdef.json \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-          echo "NEW_TASK_DEF=$NEW_TASK_DEF" >> $GITHUB_ENV
-
-      - name: Update ECS service with new task definition
-        run: |
-          aws ecs update-service \
-            --cluster assaabloy-app-cluster \
-            --service assaabloy-app-service \
-            --task-definition $NEW_TASK_DEF \
-            --enable-execute-command \
-            --force-new-deployment
