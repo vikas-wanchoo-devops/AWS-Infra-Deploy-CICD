@@ -23,7 +23,7 @@ resource "aws_ecs_cluster" "assaabloy_cluster" {
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
   description = "Allow HTTP inbound traffic"
-  vpc_id      = "vpc-0b5d7248bdde16ef7"   # ✅ VPC ID (first usage)
+  vpc_id      = "vpc-0b5d7248bdde16ef7"   # ✅ Correct VPC ID (first usage)
 
   ingress {
     from_port   = 80
@@ -59,7 +59,7 @@ resource "aws_lb_target_group" "assaabloy_tg" {
   port        = 5000
   protocol    = "HTTP"
   target_type = "ip"                             # Fargate tasks register by IP
-  vpc_id      = "vpc-0b5d7248bdde16ef7"          # ✅ VPC ID (second usage)
+  vpc_id      = "vpc-0b5d7248bdde16ef7"          # ✅ Correct VPC ID (second usage)
 
   health_check {
     path                = "/health"              # Matches Flask health endpoint
@@ -144,14 +144,9 @@ resource "aws_ecs_service" "assaabloy_service" {
     container_port   = 5000
   }
 
-  # ✅ Deployment settings supported across provider versions
+  # ✅ Only supported block in your provider
   deployment_controller {
     type = "ECS"
-  }
-
-  deployment_configuration {
-    maximum_percent         = 200   # Allow up to double tasks during rollout
-    minimum_healthy_percent = 100   # Keep all old tasks until new ones are healthy
   }
 
   depends_on = [aws_lb_listener.assaabloy_listener]
