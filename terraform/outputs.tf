@@ -27,3 +27,8 @@ output "target_group_arn" {
   description = "Target Group ARN"
   value       = aws_lb_target_group.assaabloy_tg.arn
 }
+
+output "ecs_task_sg_id" {
+  description = "Security Group ID for ECS tasks"
+  value       = aws_security_group.ecs_task_sg.id
+}
