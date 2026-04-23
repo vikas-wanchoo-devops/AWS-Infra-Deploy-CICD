@@ -11,4 +11,6 @@ def health():
     return "OK", 200
 
 if __name__ == "__main__":
-    app.run()
+    # ✅ Bind to 0.0.0.0 so ECS/ALB can reach it
+    # ✅ Match target group port (5000)
+    app.run(host="0.0.0.0", port=5000)
