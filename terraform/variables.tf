@@ -46,3 +46,9 @@ variable "ecr_repo_url" {
   type        = string
   default     = "879696522469.dkr.ecr.eu-north-1.amazonaws.com/assaabloy-app"
 }
+
+# --- ACM Certificate ARN ---
+variable "acm_certificate_arn" {
+  description = "ARN of ACM certificate for HTTPS listener"
+  type        = string
+}
