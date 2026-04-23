@@ -32,8 +32,9 @@ jobs:
         run: terraform -chdir=terraform providers
 
       - name: Terraform Apply
-        run: terraform -chdir=terraform apply -auto-approve \
-             -var="acm_certificate_arn=arn:aws:acm:eu-north-1:879696522469:certificate/26a6a1db-d80f-48e8-b4c8-0b6dda27343b"
+        env:
+          TF_VAR_acm_certificate_arn: ${{ secrets.ACM_CERTIFICATE_ARN }}
+        run: terraform -chdir=terraform apply -auto-approve
 
       - name: Show Terraform Outputs
         run: terraform -chdir=terraform output
