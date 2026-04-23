@@ -22,12 +22,19 @@ resource "aws_ecs_cluster" "assaabloy_cluster" {
 # --- Security Group for ALB ---
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
-  description = "Allow HTTP inbound traffic"
+  description = "Allow HTTP and HTTPS inbound traffic"
   vpc_id      = var.vpc_id
 
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -50,7 +57,7 @@ resource "aws_security_group" "ecs_task_sg" {
     from_port       = 5000
     to_port         = 5000
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id] # only ALB SG can talk to tasks
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   egress {
@@ -89,7 +96,7 @@ resource "aws_lb_target_group" "assaabloy_tg" {
   }
 }
 
-# --- Listener ---
+# --- HTTP Listener ---
 resource "aws_lb_listener" "assaabloy_listener" {
   load_balancer_arn = aws_lb.assaabloy_alb.arn
   port              = 80
@@ -98,6 +105,41 @@ resource "aws_lb_listener" "assaabloy_listener" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.assaabloy_tg.arn
+  }
+}
+
+# --- HTTPS Listener ---
+resource "aws_lb_listener" "assaabloy_https_listener" {
+  load_balancer_arn = aws_lb.assaabloy_alb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
+  certificate_arn   = var.acm_certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.assaabloy_tg.arn
+  }
+}
+
+# --- Redirect HTTP → HTTPS ---
+resource "aws_lb_listener_rule" "http_to_https_redirect" {
+  listener_arn = aws_lb_listener.assaabloy_listener.arn
+  priority     = 1
+
+  action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
   }
 }
 
@@ -137,7 +179,7 @@ resource "aws_ecs_service" "assaabloy_service" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [aws_security_group.ecs_task_sg.id] # use ECS task SG
+    security_groups  = [aws_security_group.ecs_task_sg.id]
   }
 
   load_balancer {
@@ -150,14 +192,15 @@ resource "aws_ecs_service" "assaabloy_service" {
     type = "ECS"
   }
 
-  # ✅ Rollback safety
   deployment_circuit_breaker {
     enable   = true
     rollback = true
   }
 
-  # ✅ Allow container startup time before health checks
   health_check_grace_period_seconds = 60
 
-  depends_on = [aws_lb_listener.assaabloy_listener]
+  depends_on = [
+    aws_lb_listener.assaabloy_listener,
+    aws_lb_listener.assaabloy_https_listener
+  ]
 }
