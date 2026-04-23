@@ -121,6 +121,7 @@ resource "aws_lb_listener" "assaabloy_listener" {
 }
 
 # --- HTTPS Listener ---
+# IMPORTANT: Use "terraform import" if the listener already exists in AWS
 resource "aws_lb_listener" "assaabloy_https_listener" {
   load_balancer_arn = aws_lb.assaabloy_alb.arn
   port              = 443
