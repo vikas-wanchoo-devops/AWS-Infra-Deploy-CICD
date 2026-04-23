@@ -45,6 +45,12 @@ resource "aws_security_group" "alb_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  lifecycle {
+    create_before_destroy = true
+    prevent_destroy       = true
+    ignore_changes        = [description, tags]
+  }
 }
 
 # --- Security Group for ECS Tasks ---
@@ -65,6 +71,12 @@ resource "aws_security_group" "ecs_task_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  lifecycle {
+    create_before_destroy = true
+    prevent_destroy       = true
+    ignore_changes        = [description, tags]
   }
 }
 
@@ -90,7 +102,7 @@ resource "aws_lb_target_group" "assaabloy_tg" {
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
-    timeout             = 10
+    timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
   }
