@@ -2,7 +2,7 @@ name: CI-CD Pipeline
 
 on:
   push:
-    branches: [ "main", "dev" ]   # Run pipeline on pushes to main or dev branches
+    branches: [ "main", "dev" ]   # Run pipeline on pushes to main or dev branches.
 
 jobs:
   terraform:
