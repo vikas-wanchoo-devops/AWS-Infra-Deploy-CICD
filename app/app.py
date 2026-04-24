@@ -13,6 +13,11 @@ logging.basicConfig(
     force=True                        # override any previous handlers
 )
 
+# ✅ Force flush on every log line
+for handler in logging.getLogger().handlers:
+    handler.setLevel(logging.INFO)
+    handler.flush = sys.stdout.flush
+
 @app.before_request
 def log_request_info():
     app.logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
