@@ -4,7 +4,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Configure logging to stdout (captured by ECS/CloudWatch)
+# Configure logging to stdout (captured by ECS/CloudWatch.)
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(message)s")
 
