@@ -1,12 +1,17 @@
 from flask import Flask, render_template, request
 import logging
+import sys
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Configure logging to stdout (captured by ECS/CloudWatch.)
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s [%(levelname)s] %(message)s")
+# ✅ Configure logging to stdout (captured by ECS/CloudWatch)
+logging.basicConfig(
+    stream=sys.stdout,                # ensure logs go to stdout
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    force=True                        # override any previous handlers
+)
 
 @app.before_request
 def log_request_info():
