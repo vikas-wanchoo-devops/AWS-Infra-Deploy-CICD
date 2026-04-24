@@ -121,7 +121,6 @@ resource "aws_lb_listener" "assaabloy_listener" {
 }
 
 # --- HTTPS Listener ---
-# IMPORTANT: Use "terraform import" if the listener already exists in AWS
 resource "aws_lb_listener" "assaabloy_https_listener" {
   load_balancer_arn = aws_lb.assaabloy_alb.arn
   port              = 443
@@ -177,6 +176,14 @@ resource "aws_ecs_task_definition" "assaabloy_task" {
           hostPort      = 5000
         }
       ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/${var.app_name}-task"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
     }
   ])
 }
