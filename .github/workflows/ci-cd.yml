@@ -7,6 +7,7 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && (contains(join(github.event.head_commit.added, 'terraform/') || contains(join(github.event.head_commit.modified, 'terraform/'), 'terraform/')) }}
     steps:
       - uses: actions/checkout@v3
 
@@ -20,7 +21,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.6.6   # ✅ Pin a recent Terraform version
+          terraform_version: 1.6.6
 
       - name: Clear Terraform cache
         run: rm -rf terraform/.terraform terraform/.terraform.lock.hcl
@@ -40,8 +41,9 @@ jobs:
         run: terraform -chdir=terraform output
 
   build:
-    needs: terraform
     runs-on: ubuntu-latest
+    needs: [terraform]
+    if: ${{ always() }}   # run even if terraform skipped or had no changes
     steps:
       - uses: actions/checkout@v3
 
@@ -61,8 +63,9 @@ jobs:
           docker push $IMAGE_URI
 
   deploy:
-    needs: build
     runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ always() }}   # run even if build ran after no infra changes
     steps:
       - uses: actions/checkout@v3
 
