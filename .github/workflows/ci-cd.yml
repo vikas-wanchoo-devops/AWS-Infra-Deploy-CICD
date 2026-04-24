@@ -2,12 +2,15 @@ name: CI-CD Pipeline
 
 on:
   push:
-    branches: [ "main", "dev" ]   # Run pipeline on pushes to main or dev branches.
+    branches: [ "main", "dev" ]
+    paths:
+      - '**'   # trigger on any file change
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' && (contains(join(github.event.head_commit.added, 'terraform/') || contains(join(github.event.head_commit.modified, 'terraform/'), 'terraform/')) }}
+    # Only run Terraform if .tf files changed
+    if: contains(github.event.head_commit.message, '[terraform]') || endsWith(github.ref, '/terraform')
     steps:
       - uses: actions/checkout@v3
 
@@ -28,9 +31,6 @@ jobs:
 
       - name: Terraform Init (upgrade providers)
         run: terraform -chdir=terraform init -upgrade
-
-      - name: Show Terraform Providers
-        run: terraform -chdir=terraform providers
 
       - name: Terraform Apply
         env:
@@ -65,7 +65,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [build]
-    if: ${{ always() }}   # run even if build ran after no infra changes
+    if: ${{ always() }}
     steps:
       - uses: actions/checkout@v3
 
