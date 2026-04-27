@@ -6,6 +6,10 @@ on:
     paths:
       - '**'
 
+permissions:
+  id-token: write   # required for OIDC role assumption
+  contents: read    # required for actions/checkout
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
