@@ -2,7 +2,7 @@ provider "aws" {
   region = var.region
 }
 
-# --- ECR Repository ----
+# --- ECR Repository ---
 resource "aws_ecr_repository" "app_repo" {
   name = var.app_name
   image_scanning_configuration {
