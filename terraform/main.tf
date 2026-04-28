@@ -219,6 +219,10 @@ resource "aws_ecs_service" "assaabloy_service" {
 
   health_check_grace_period_seconds = 60
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   depends_on = [
     aws_lb_listener.assaabloy_listener,
     aws_lb_listener.assaabloy_https_listener
